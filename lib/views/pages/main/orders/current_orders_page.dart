@@ -5,8 +5,10 @@ import 'package:intl/intl.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../../routes/default_page_route.dart';
+import '../../../../views/pages/start/start_page.dart';
 
 import '../../../../models/api/order.dart';
+import '../../../../helpers/storage/database.dart';
 
 import '../../../../helpers/view/localization.dart';
 import '../../../../helpers/view/formatter.dart';
@@ -55,11 +57,19 @@ class CurrentOrdersPageState extends State<CurrentOrdersPage> with SingleTickerP
   Future<Null> refreshOrders(){
     return MainAPI.getRestaurantCurrentOrders(Cache.restaurant.id).then(
       (res){
+        List<Order> result = res;
         if (res != null && Cache.currentOrders != null){
           int count = res.length;
           for (var order in res){
             for (var ex in Cache.currentOrders){
               if (ex.id == order.id){
+                count--;
+                break;
+              }
+            }
+            for (var ex in Cache.acceptedByAdminOrders){
+              if (ex.id == order.id){
+                result.remove(order);
                 count--;
                 break;
               }
@@ -70,7 +80,7 @@ class CurrentOrdersPageState extends State<CurrentOrdersPage> with SingleTickerP
           }
         }
         setState(() {
-          Cache.currentOrders = res;      
+          Cache.currentOrders = result;      
         });        
       }     
     );
@@ -111,7 +121,11 @@ class CurrentOrdersPageState extends State<CurrentOrdersPage> with SingleTickerP
             onPressed: (){    
               setState(
                 () {
-                  Cache.currentOrders.remove(order);      
+                  if (Cache.acceptedByAdminOrders == null) {
+                    Cache.acceptedByAdminOrders = [];
+                  }
+                  Cache.acceptedByAdminOrders.add(order); 
+                  Cache.currentOrders.remove(order);     
                 }
               );
             },
@@ -192,7 +206,24 @@ class CurrentOrdersPageState extends State<CurrentOrdersPage> with SingleTickerP
               color: Colors.white
             ),
           ),
-          backgroundColor: Color.fromARGB(255, 247, 131, 6),     
+          backgroundColor: Color.fromARGB(255, 247, 131, 6),  
+          actions:[ 
+              PopupMenuButton<int>(         
+                onSelected: (value){
+                  if (value == 0){
+                    Cache.currentUser = null;
+                    Database.deleteCurrentUser(); 
+                    Navigator.pushReplacement(
+                      context, 
+                      DefaultPageRoute(builder: (context) => StartPage())
+                    );
+                  }
+                },
+                itemBuilder:  (BuildContext context) => [
+                  PopupMenuItem<int>(child: Text(Localization.textLogout), value: 0)
+                ],
+              )
+          ]
         ),
         body: Center(
           child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Color.fromARGB(255, 247, 131, 6))),            
@@ -234,8 +265,23 @@ class CurrentOrdersPageState extends State<CurrentOrdersPage> with SingleTickerP
           color: Colors.white
         ),
         backgroundColor: Color.fromARGB(255, 247, 131, 6),
-        actions: [
-        ],
+        actions:[ 
+              PopupMenuButton<int>(         
+                onSelected: (value){
+                  if (value == 0){
+                    Cache.currentUser = null;
+                    Database.deleteCurrentUser(); 
+                    Navigator.pushReplacement(
+                      context, 
+                      DefaultPageRoute(builder: (context) => StartPage())
+                    );
+                  }
+                },
+                itemBuilder:  (BuildContext context) => [
+                  PopupMenuItem<int>(child: Text(Localization.textLogout), value: 0)
+                ],
+              )
+          ]
       ),
       body: RefreshIndicator(
         onRefresh: refreshOrders,

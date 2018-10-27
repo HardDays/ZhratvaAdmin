@@ -7,10 +7,12 @@ class Cache {
   static List<Order> currentOrders;
   static User currentUser;
   static Restaurant restaurant;
+  static List<Order> acceptedByAdminOrders;
 
   static void flush(){
     currentOrders = null;
     currentUser = null;
     restaurant = null;
+    acceptedByAdminOrders = [];
   }
 }
